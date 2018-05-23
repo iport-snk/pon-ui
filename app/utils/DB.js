@@ -4,7 +4,7 @@ Ext.define('PON.utils.DB', {
         init: function () {
             let db = new PouchDB('pon');
 
-            let sync = PouchDB.sync('pon', 'http://localhost:5984/pon', {
+            let sync = PouchDB.sync('pon', 'http://172.16.252.100:5984/pon', {
                 live: true,
                 retry: true
             }).on('change', function (info) {
