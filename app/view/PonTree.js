@@ -7,14 +7,8 @@ Ext.define('PON.view.PonTree', {
     controller: 'pon-tree',
     rootVisible: false,
     rowLines: true,
+    title: '',
     hideHeaders: true,
-    viewConfig: {
-        plugins: {
-            treeviewdragdrop: {
-                containerScroll: true
-            }
-        }
-    },
     columns: [{
         xtype: 'treecolumn',
         text: 'Name',
@@ -26,26 +20,29 @@ Ext.define('PON.view.PonTree', {
             if (record.data.type === "box") {
                 name = `${record.data.coupler} ${record.data.branch ?  ' - ' + record.data.branch : ''} : ${record.data.splitter}`;
                 record.data.iconCls = "x-fa fa-sitemap";
+            } else if (record.data.type === "group") {
+                name = `Распределение`;
+                record.data.iconCls = "x-fa fa-users";
             } else if (record.data.type === "client") {
                 record.data.iconCls = "x-fa fa-user";
                 record.data.leaf = true;
-                name = record.data.contract;
+                name = `${record.data.address}  [${record.data.contract}]`;
             } else if (record.data.type === "sfp") {
                 record.data.iconCls = "x-fa fa-podcast";
-                name = record.data.olt + " : SFP." + record.data.port;
+                name = record.data.district + " : SFP." + record.data.port;
             }
 
             return name;
         }
     }, {
-        text: 'Улица',
-        dataIndex: 'address'
+        width: 70,
+        text: 'dB',
+        dataIndex: 'power'
     }],
     items: [{
         xtype: 'toolbar',
         docked: 'bottom',
         items: [{
-            reference: 'editBtn',
             iconCls: 'x-fa fa-arrow-left',
             handler: 'back'
         }, '->', {
@@ -79,7 +76,9 @@ Ext.define('PON.view.PonTree', {
         }]
     }],
     listeners: {
-        storedatachanged: 'datachanged'
+        //storedatachanged: 'datachanged',
+        select: 'selected',
+        deselect: 'setItemActions',
+        storechange: 'setItemActions'
     }
-
 });

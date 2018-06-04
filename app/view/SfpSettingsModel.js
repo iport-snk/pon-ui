@@ -4,10 +4,12 @@ Ext.define('PON.view.SfpSettingsModel', {
 
     stores: {
         olts: {
-            fields: ['name']
+            fields: ['district', '_id', 'ports'],
+            sorters: 'district'
         },
         ports: {
-            fields: ['name', 'id', 'device']
+            fields: ['olt', 'port', 'district'],
+            sorters: 'port'
         }
     },
 
@@ -15,21 +17,28 @@ Ext.define('PON.view.SfpSettingsModel', {
         let olts = this.getStore('olts'),
             ports = this.getStore('ports');
 
-        PON.app.db.query(function (doc, emit) {
-            if (doc.type === 'sfp') {
-                emit(doc.port, {port: doc.port, olt: doc.olt, address: doc.address});
-            }
-        }).then(function (result) {
-            result.rows.forEach( item => {
-                let docId = item.id,
-                    port = item.value.port,
-                    olt = item.value.olt;
+        ports.clearFilter();
+        olts.removeAll();
+        ports.removeAll();
 
-                if (olts.findExact('name', olt) === -1) olts.add({name: olt});
-                ports.add({name: port, id: docId, olt: olt});
+        PON.app.db.allDocs({
+            include_docs: true,
+            startkey: 'o.',
+            endkey: 'o.' + PON.app.MATCHER
+        }).then(function (result) {
+            let data = [];
+            result.rows.forEach( item => {
+                olts.add(item.doc);
+                item.doc.ports.split(',').forEach( function(port) {
+                    data.push({
+                        olt: item.doc._id,
+                        port: port,
+                        district: item.doc.district
+                    })
+                });
             });
+            ports.setData(data);
             ports.filterBy( _ => false);
         });
-
     }
 });

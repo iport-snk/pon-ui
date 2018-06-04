@@ -25,9 +25,6 @@ Ext.define('PON.view.BoxSettings', {
             handler: 'save'
         }]
     }, {
-        xtype: 'hiddenfield',
-        name: 'sfp'
-    }, {
         xtype: 'textfield',
         label: 'Адрес',
         reference: 'address',

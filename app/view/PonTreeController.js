@@ -2,6 +2,17 @@ Ext.define('PON.view.PonTreeController', {
     extend: 'Ext.app.ViewController',
     alias: 'controller.pon-tree',
 
+    FIELDS: {
+        box: {
+            add: ['_id', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp'],
+            update: ['_id', '_rev', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp'],
+        },
+        client: {
+            add: ['_id', 'address', 'contract', 'index', 'parentId', 'type', 'sfp'],
+            update: ['_id', '_rev', 'contract', 'address', 'index', 'parentId', 'type', 'sfp']
+        }
+    },
+
     onSelectionChange: function(selectable, selection) {
         /*var button = this.lookup('add-button'),
             selectedNode;
@@ -25,21 +36,48 @@ Ext.define('PON.view.PonTreeController', {
     },
 
     getSfp: function () {
-        return this.getView().getStore().getData().getAt(0).getData().sfp;
+        return this.getView().getRootNode().get('sfp');
+    },
+
+    getNextBoxId: function (items) {
+        let boxes = items.filter( _ => _.data.type === 'box'),
+            lastId = 0;
+
+        if (boxes.length === 0) {
+            return 0
+        } else if (boxes.length === 1) {
+            lastId = boxes[0].id
+        } else {
+            lastId = boxes.reduce(function(a, b) {
+                return a.id > b.id ? a.id : b.id;
+            });
+        }
+
+        let id = parseInt(lastId.substr(lastId.lastIndexOf('.') + 1));
+        return id + 1;
+    },
+
+    applyAddBoxSettings: function (item, tree) {
+        let id = this.getNextBoxId(tree.getStore().getData().items);
+
+        item.sfp = this.getSfp().id;
+        item.id = item._id = `n.${item.sfp}.b.${id}`;
+        item.children = [];
     },
 
     addBox: function( ) {
         let tree = this.getView(),
             selected = tree.getSelections()[0],
-            target = selected.parentNode;
+            target = selected ? selected.parentNode : tree.getRootNode();
+
 
         Ext.Viewport.down('box-settings').fireEvent('setAction', {
-            formdData: { sfp: this.getSfp()},
             cb: data => {
-                data.sfp  = this.getSfp();
-                let node = target.insertBefore(data, selected.nextSibling);
+                this.applyAddBoxSettings(data, tree);
 
-                this.dbPost(node);
+                let node = target.insertBefore(data, Ext.isEmpty(selected) ? null : selected.nextSibling );
+
+                this.dbPost(node, this.FIELDS.box.add);
                 tree.select(node);
             }
         })
@@ -50,22 +88,20 @@ Ext.define('PON.view.PonTreeController', {
             target = tree.getSelections()[0];
 
         Ext.Viewport.down('box-settings').fireEvent('setAction', {
-            formdData: { sfp: this.getSfp()},
             cb: data => {
-                data.sfp  = this.getSfp();
+                this.applyAddBoxSettings(data, tree);
+
                 let node = target.appendChild(data);
 
-                this.dbPost(node);
+                this.dbPost(node, this.FIELDS.box.add);
                 if (!target.isExpanded()) target.expand(false);
                 tree.select(node);
             }
         })
     },
 
-    dbPost: function (node) {
-        let data = {}, keys = [
-                'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp'
-            ].forEach( key => data[key] = node.get(key));
+    dbPost: function (node, fields) {
+        let data = {}, keys = fields.forEach( key => data[key] = node.get(key));
 
         PON.app.db.post(data).then( result => {
             node.setId(result.id);
@@ -74,21 +110,20 @@ Ext.define('PON.view.PonTreeController', {
 
     edit: function () {
         let tree = this.getView(),
-            target = tree.getSelections()[0];
+            target = tree.getSelections()[0],
+            type = target.get('type');
 
-        Ext.Viewport.down('box-settings').fireEvent('setAction', {
+        Ext.Viewport.down(`${type}-settings`).fireEvent('setAction', {
             formdData: target.data,
             cb: data => {
                 target.set(data);
-                this.dbPut(target);
+                this.dbPut(target, this.FIELDS[type].update);
             }
         })
     },
 
-    dbPut: function (node) {
-        let data = {}, keys = [
-            '_id', '_rev', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp'
-        ].forEach( key => data[key] = node.get(key));
+    dbPut: function (node, fields) {
+        let data = {}, keys = fields.forEach( key => data[key] = node.get(key));
 
         PON.app.db.put(data).then( result => {
             node.set('_rev', result.rev);
@@ -106,7 +141,22 @@ Ext.define('PON.view.PonTreeController', {
 
 
     addCustomer: function( ) {
-        //Ext.Viewport.setActiveItem(1);
+        let tree = this.getView(),
+            target = tree.getSelections()[0];
+
+        Ext.Viewport.down('client-selection').fireEvent('setAction', {
+            clients: this.getUnresolvedClients(),
+            cb: record => {
+                //data.sfp  = this.getSfp();
+                let node = record.data.node;
+
+                target.appendChild(node);
+
+                this.dbUpdate(node, {parentId: node.get('parentId')});
+                if (!target.isExpanded()) target.expand(false);
+                tree.select(node);
+            }
+        })
     },
 
     back: function () {
@@ -137,8 +187,28 @@ Ext.define('PON.view.PonTreeController', {
         this.dbUpdate(target, {index: target.get('index')});
     },
 
-    datachanged: function () {
-        console.log('changed')
+    selected: function (tree, selection) {
+        if (!Ext.isArray(selection) || selection[0].data.id.endsWith('.undef')) {
+            this.setItemActions('disable');
+        } else {
+            this.setItemActions('enable');
+        }
+    },
+
+    setItemActions: function (action) {
+        let f = Ext.isObject(action) ? 'disable' : action;
+
+        ['addBranchBtn', 'addCustomerBtn', 'moveUp', 'moveDown', 'editBtn'].forEach(
+            btn => this.lookup(btn)[f]()
+        )
+    },
+
+    getUnresolvedClients: function () {
+        let store = this.getView().getStore(),
+            clients = store.findNode('type', 'group');
+
+        return clients.childNodes;
     }
+
 
 });
