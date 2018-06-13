@@ -111,7 +111,6 @@ Ext.define('PON.view.ClientInfoController', {
             this.gettingBackCardId = context.gettingBackCardId;
             this.loadData();
             this.setProps(context.info);
-            //this.getView().setValues(context.client);
         }
     }
 });

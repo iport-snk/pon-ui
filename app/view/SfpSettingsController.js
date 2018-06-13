@@ -84,7 +84,9 @@ Ext.define('PON.view.SfpSettingsController', {
         Promise.all([
             this.getBoxes(rootId),
             this.getUnresolvedClients(rootId)
-        ]).then( ([boxes, clients]) => {
+        ]).then( stores => {
+            let [boxes, clients] = stores;
+
             let sfp = {
                 id: rootId,
                 port: port,
@@ -95,7 +97,6 @@ Ext.define('PON.view.SfpSettingsController', {
                 type: 'group',
                 children: [],
                 id: rootId + '.undef',
-                //parentId: rootId,
                 expanded: false
             }].concat(clients, boxes);
 
@@ -104,7 +105,7 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     getBoxes: function (sfp) {
-        return PON.app.db.query('boxes', {
+        return PON.app.db.query('boxes',  {
             startkey: sfp ,
             endkey: sfp
         }).then(r => {
@@ -274,9 +275,8 @@ Ext.define('PON.view.SfpSettingsController', {
         Ext.Viewport.down('client-info').fireEvent('setAction', {
             info: record,
             gettingBackCardId: PON.app.CARD_INDEXES.SFP_SELECTION,
-            cb: record => {
+            cb: function (record) {
                 //data.sfp  = this.getSfp();
-
             }
         })
     },
