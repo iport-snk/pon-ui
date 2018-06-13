@@ -12,7 +12,7 @@ Ext.define('PON.view.ClientInfo', {
 
     items: [{
         xtype: 'grid',
-        height: 208,
+        height: 168,
         hideHeaders: true,
         reference: 'info',
         columns: [{

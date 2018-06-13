@@ -26,10 +26,17 @@ Ext.define('PON.view.BoxSettings', {
         }]
     }, {
         xtype: 'textfield',
-        label: 'Адрес',
+        label: 'Координаты',
         reference: 'address',
         name: 'address',
-        labelAlign: 'left',
+        editable: false,
+        triggers: {
+            location: {
+                iconCls: 'x-fa fa-refresh',
+                handler: 'getLocation'
+            },
+        },
+        //labelAlign: 'left',
         required: true
     }, {
         xtype: 'combobox',

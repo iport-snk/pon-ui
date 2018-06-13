@@ -39,30 +39,32 @@ Ext.define('PON.view.ClientInfoController', {
     },
 
     setProps: function (info) {
-        let street = info.client.get('street');
+        let street = info.get('street');
 
         this.lookup('titlebar').setTitle(PON.app.formatMac(this.info.onu));
 
         let data = [
-            {prop: 'dB', val: `${info.client.get('power')} / ${info.client.get('time')}`},
-            {prop: 'OLT', val: info.sfp.district},
-            {prop: 'SFP', val: info.sfp.id}
+            {prop: 'dB', val: `${info.get('power')} / ${info.get('time')}`}
         ];
 
         if (!Ext.isEmpty(street)) {
             data.push({
-                prop: 'Адрес', val: street + ' ,' + info.client.get('house')
+                prop: 'Адрес', val: street + ' ,' + info.get('house')
             },{
-                prop: 'Договор', val: info.client.get('contract'),
+                prop: 'Договор', val: info.get('contract'),
             })
         }
 
-        this.lookup('info').setStore(Ext.create('Ext.data.Store', {
-            fields: ['prop', 'val'],
-            data: data
-        }));
-
-
+        PON.app.db.get('o.' + this.info.olt).then( olt => {
+            data.push({
+                prop: 'SFP',
+                val: `${olt.district} / Порт:  ${info.get('port')}`
+            });
+            this.lookup('info').setStore(Ext.create('Ext.data.Store', {
+                fields: ['prop', 'val'],
+                data: data
+            }));
+        })
     },
 
 
@@ -102,13 +104,12 @@ Ext.define('PON.view.ClientInfoController', {
         if (context) {
 
             this.info = {
-                onu: context.info.client.get('id').split('.')[1],
-                olt: context.info.client.get('sfp').split('.')[0]
+                onu: context.info.get('id').split('.')[1],
+                olt: context.info.get('sfp')
             };
 
-
             this.gettingBackCardId = context.gettingBackCardId;
-            this.loadData(context.info.client);
+            this.loadData();
             this.setProps(context.info);
             //this.getView().setValues(context.client);
         }

@@ -21,14 +21,13 @@ Ext.define('PON.view.ClientSelectionController', {
 
         this.getView().reset();
         let clients = context.clients;
-        //if (context.formdData) this.getView().setValues(context.formdData);
 
         let store = Ext.create('Ext.data.Store', {
             fields: ['address', 'contract'],
             data: clients.map( item => ({
                 node: item,
                 contract: item.data.contract,
-                address: item.data.address + "  [" + item.data.contract + "]"
+                address: PON.app.formatAddress(item.data)
             }))
         });
 

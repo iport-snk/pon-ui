@@ -22,12 +22,19 @@ Ext.define('PON.view.PonGrid', {
         },
         flex: 1,
     },{
+        text: 'P',
+        xtype: 'numbercolumn',
+        format: '0',
+        dataIndex: 'port',
+        width: 40
+    },{
         text: 'Дог.',
         dataIndex: 'contract',
-        width: 80
+        align: 'right',
+        width: 75
     }, {
         //xtype: 'numbercolumn',
-        width: 80,
+        width: 60,
         text: 'dB',
         dataIndex: 'power',
         align: 'right',

@@ -8,19 +8,66 @@ Ext.define('PON.view.SfpSettingsController', {
 
         store.clearFilter();
         store.filterBy( item => item.get('olt') === value );
-        this.setActionsEnabled('disable');
+        this.setActionsEnabled('enable');
+    },
+
+    filterStreets: function (target, value) {
+        let combo = this.lookup('streetsCombo'),
+            store = combo.getStore();
+
+        store.clearFilter();
+        store.filterBy( item => item.get('district') === value );
+        this.setActionsEnabled('enable');
     },
 
     loadClients: function () {
-        let data = this.lookup('sfp').getSelection().data,
-            olt = data.olt.split('.')[1],
-            sfp = {
-                id: `${olt}.${data.port}`,
-                port: data.port,
-                district: data.district,
-            };
+        let searchByAddress = this.lookup('searchBy').getValue(),
+            criterion;
 
-        Ext.ComponentQuery.query('pon-grid')[0].fireEvent('sfpchange', sfp);
+        if (searchByAddress) {
+            let street = this.lookup('streetsCombo').getSelection();
+
+            if (street) {
+                criterion = {
+                    query: 'streets',
+                    id: street.data.key,
+                    title: street.data.key
+                };
+            } else {
+                let district = this.lookup('districtsCombo').getSelection().data.district;
+
+                criterion = {
+                    query: 'streets',
+                    id: district,
+                    title: district
+                };
+            }
+
+        } else {
+            let sfp = this.lookup('sfp').getSelection();
+            if (sfp) {
+                let data = sfp.data,
+                    olt = data.olt.split('.')[1];
+
+                criterion = {
+                    query: 'clients',
+                    id: `${olt}.${data.port}`,
+                    title: `OLT : ${data.district} : ${data.port}`
+                };
+            } else {
+                let data = this.lookup('olt').getSelection().data,
+                    olt = data._id.split('.')[1];
+
+                criterion = {
+                    query: 'clients',
+                    id: `${olt}.`,
+                    title: `OLT : ${data.district}`
+                };
+            }
+
+        }
+
+        Ext.ComponentQuery.query('pon-grid')[0].fireEvent('sfpchange', criterion);
     },
 
     loadBranch: function () {
@@ -34,15 +81,15 @@ Ext.define('PON.view.SfpSettingsController', {
             port = data.port,
             rootId = `${olt}.${port}`;
 
-        PON.app.db.allDocs({
-            include_docs: true,
-            startkey: `n.${rootId}.`,
-            endkey: `n.${rootId}.${PON.app.MATCHER}`
-        }).then( result => {
+        Promise.all([
+            this.getBoxes(rootId),
+            this.getUnresolvedClients(rootId)
+        ]).then( ([boxes, clients]) => {
             let sfp = {
                 id: rootId,
                 port: port,
                 district: data.district,
+                districtId: data.districtId
             };
             let branch = [{
                 type: 'group',
@@ -50,19 +97,44 @@ Ext.define('PON.view.SfpSettingsController', {
                 id: rootId + '.undef',
                 //parentId: rootId,
                 expanded: false
-            }].concat(result.rows.map( row => {
-                row.doc.id = row.doc._id;
-                row.doc.children = [];
-
-                if (row.doc.type === 'client' && Ext.isEmpty(row.doc.parentId)) {
-                    row.doc.parentId = rootId + '.undef'
-                }
-                return row.doc
-            }));
+            }].concat(clients, boxes);
 
             this.buildTree(branch, sfp);
         });
     },
+
+    getBoxes: function (sfp) {
+        return PON.app.db.query('boxes', {
+            startkey: sfp ,
+            endkey: sfp
+        }).then(r => {
+            return r.rows.map(row => {
+                row.value.id = row.value._id;
+                row.value.children = [];
+                return row.value;
+            });
+        })
+    },
+
+    getUnresolvedClients: function (sfp) {
+        return PON.app.db.query('clients', {
+            startkey: sfp ,
+            endkey: sfp
+        }).then(r => {
+            return r.rows.map(row => {
+                row.value.id = row.value._id;
+                row.value.children = [];
+                if (Ext.isEmpty(row.value.parentId)) {
+                    row.value.parentId = sfp + '.undef';
+                } else {
+                    console.log(row.value)
+                }
+
+                return row.value;
+            });
+        })
+    },
+
 
     buildTree: function (data, sfp) {
         let tree = Ext.ComponentQuery.query('pon-tree')[0];
@@ -141,6 +213,7 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     showTree: function () {
+        PON.app.db.syncOn();
         this.loadBranch();
 
     },
@@ -157,7 +230,7 @@ Ext.define('PON.view.SfpSettingsController', {
         PON.app.db.replicateFrom().then( info => {
             this.updateDateOnRefreshed();
         }).catch( error => {
-            debugger;
+            console.warn(error);
         })
     },
 
@@ -165,6 +238,57 @@ Ext.define('PON.view.SfpSettingsController', {
         Ext.Viewport.setMasked(false);
         this.setTitle();
         this.getViewModel().fillStores();
+    },
+
+    doSearch: function (field, search) {
+        let wg = this.lookup('contracts'),
+            store = wg.getStore();
+
+        if (Ext.isEmpty(search)) {
+            wg.setHidden(true);
+        } else {
+            wg.setHidden(false);
+            PON.app.db.query('contracts', {
+                startkey: search ,
+                endkey: search + PON.app.MATCHER ,
+                limit: 12
+            }).then(r => {
+                store.setData(r.rows.map( row => {
+                    let sfp = row.value.sfp.split('.');
+
+                    row.value.sfp = sfp[0];
+                    row.value.port = sfp[1];
+                    row.value.id = row.value._id;
+                    return row.value
+                }));
+            }).catch( error => {
+                store.setData([]);
+            });
+        }
+    },
+
+    selectContract: function (list, record) {
+        this.lookup('search').setValue(record.get('contract'));
+        this.lookup('contracts').setHidden(true);
+
+        Ext.Viewport.down('client-info').fireEvent('setAction', {
+            info: record,
+            gettingBackCardId: PON.app.CARD_INDEXES.SFP_SELECTION,
+            cb: record => {
+                //data.sfp  = this.getSfp();
+
+            }
+        })
+    },
+
+    toggleFilter: function (field, value) {
+        if (value) {
+            this.lookup('filter-by-address').setHidden(false);
+            this.lookup('filter-by-olt').setHidden(true);
+        } else {
+            this.lookup('filter-by-address').setHidden(true);
+            this.lookup('filter-by-olt').setHidden(false);
+        }
     },
 
     setAction: function (context) {

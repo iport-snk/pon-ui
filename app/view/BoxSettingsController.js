@@ -25,7 +25,21 @@ Ext.define('PON.view.BoxSettingsController', {
         Ext.Viewport.setActiveItem(1);
         this.onSaveFunction = context.cb;
 
+        this.lookup('address').setLabel('Координаты');
+
         this.getView().reset();
         if (context.formdData) this.getView().setValues(context.formdData);
+    },
+
+    getLocation: function (source) {
+        source.setLabel(`Координаты (поиск ...)`);
+        navigator.geolocation.getCurrentPosition(position => {
+            source.setLabel(`Координаты (точность: ${parseInt(position.coords.accuracy)} m)`);
+            source.setValue(position.coords.latitude + " , " + position.coords.longitude);
+        }, error => {
+            console.warn(error);
+        }, {
+            enableHighAccuracy: true
+        });
     }
 });

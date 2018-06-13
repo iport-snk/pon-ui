@@ -58,10 +58,12 @@ Ext.define('PON.view.PonTreeController', {
     },
 
     applyAddBoxSettings: function (item, tree) {
-        let id = this.getNextBoxId(tree.getStore().getData().items);
+        //let id = this.getNextBoxId(tree.getStore().getData().items);
+        let id = (new Date()).getTime(),
+            sfp = this.getSfp();
 
-        item.sfp = this.getSfp().id;
-        item.id = item._id = `n.${item.sfp}.b.${id}`;
+        item.sfp = sfp.id;
+        item.id = item._id = `b.${sfp.districtId}.${id}`;
         item.children = [];
     },
 

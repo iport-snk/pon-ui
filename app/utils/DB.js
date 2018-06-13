@@ -2,13 +2,21 @@ Ext.define('PON.utils.DB', {
     alias: 'utils.db',
 
     statics: {
-        remote: 'http://172.16.252.100:5984/pon',
+        remote: 'http://91.226.253.11:5984/pon',
         local: 'pon',
         init: function () {
             let db = new PouchDB(PON.utils.DB.local);
 
+            db.putOnus = this.putOnus.bind(db);
+            db.replicateFrom = this.replicateFrom.bind(db);
+            db.refreshSignals = this.refreshSignals.bind(db);
+            db.syncOn = this.syncOn.bind(db);
 
-            /*let sync = PouchDB.sync('pon', 'http://172.16.252.100:5984/pon', {
+            return db;
+        },
+
+        syncOn: function () {
+            let sync = PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
                 live: true,
                 retry: true
             }).on('change', function (info) {
@@ -27,13 +35,7 @@ Ext.define('PON.utils.DB', {
             }).on('error', function (err) {
                 console.log('DB error');
                 console.log(err);
-            });*/
-
-            db.putOnus = this.putOnus.bind(db);
-            db.replicateFrom = this.replicateFrom.bind(db);
-            db.refreshSignals = this.refreshSignals.bind(db);
-
-            return db;
+            });
         },
 
         replicateFrom: function () {

@@ -26,7 +26,9 @@ Ext.define('PON.view.PonTree', {
             } else if (record.data.type === "client") {
                 record.data.iconCls = "x-fa fa-user";
                 record.data.leaf = true;
-                name = `${record.data.address}  [${record.data.contract}]`;
+
+                name = PON.app.formatAddress(record.data);
+
             } else if (record.data.type === "sfp") {
                 record.data.iconCls = "x-fa fa-podcast";
                 name = record.data.district + " : SFP." + record.data.port;

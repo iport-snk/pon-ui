@@ -45,6 +45,13 @@ Ext.application({
         return `${mac.substr(0, 2)}:${mac.substr(2, 2)}:${mac.substr(4, 2)}:${mac.substr(6, 2)}:${mac.substr(8, 2)}:${mac.substr(10, 2)}`
     },
 
+    formatAddress: function (client) {
+        let name = this.formatMac(client._id.split('.')[1]);
+        if (client.street) name = `${client.street.split('-')[1].trim()} , ${client.house}`;
+        if (client.contract) name += ' : ' + client.contract;
+        return name;
+    },
+
     launch: function () {
         this.db = PON.utils.DB.init();
 

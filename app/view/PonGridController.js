@@ -2,28 +2,32 @@ Ext.define('PON.view.PonGridController', {
     extend: 'Ext.app.ViewController',
     alias: 'controller.pon-grid',
 
-    sfp: {},
 
-    draw: function (sfp) {
+    draw: function (criterion) {
         let grid = this.getView();
 
         grid.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
-
-        this.sfp = sfp;
-        this.lookup('grid-header').setTitle(`${sfp.district} : ${sfp.port}`);
-
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.GRID);
-        PON.app.db.query('clients', {
-            startkey: `${sfp.id}`,
-            endkey: `${sfp.id}`
+
+        this.lookup('grid-header').setTitle(criterion.title);
+
+        PON.app.db.query(criterion.query, {
+            startkey: `${criterion.id}`,
+            endkey: `${criterion.id}${PON.app.MATCHER}`
         }).then( result => {
             grid.setStore(Ext.create('Ext.data.Store', {
                 fields: [
                     {name: 'street'}, {name: 'house'}, {name: 'active'},
+                    {name: 'sfp'},
+                    {name: 'port', type: 'number'},
                     {name: 'power', type: 'number'},
                     {name: 'contract'}
                 ],
                 data: result.rows.map( row => {
+                    let port = row.value.sfp.split('.');
+
+                    row.value.port = port[1];
+                    row.value.sfp = port[0];
                     row.value.id = row.value._id;
                     return row.value
                 })
@@ -43,10 +47,7 @@ Ext.define('PON.view.PonGridController', {
             target = grid.getSelections()[0];
 
         Ext.Viewport.down('client-info').fireEvent('setAction', {
-            info: {
-                client: target,
-                sfp: this.sfp
-            },
+            info: target,
             gettingBackCardId: PON.app.CARD_INDEXES.GRID,
             cb: record => {
                 //data.sfp  = this.getSfp();
