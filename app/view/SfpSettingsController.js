@@ -96,7 +96,7 @@ Ext.define('PON.view.SfpSettingsController', {
             let branch = [{
                 type: 'group',
                 children: [],
-                id: rootId + '.undef',
+                id: 'undefGroup',
                 expanded: false
             }].concat(clients, boxes);
 
@@ -126,7 +126,7 @@ Ext.define('PON.view.SfpSettingsController', {
                 row.value.id = row.value._id;
                 row.value.children = [];
                 if (Ext.isEmpty(row.value.parentId)) {
-                    row.value.parentId = sfp + '.undef';
+                    row.value.parentId = 'undefGroup';
                 } else {
                     console.log(row.value)
                 }
@@ -214,9 +214,8 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     showTree: function () {
-        PON.app.db.syncOn();
+        //PON.app.db.syncOn();
         this.loadBranch();
-
     },
 
     setTitle: function () {
@@ -228,7 +227,8 @@ Ext.define('PON.view.SfpSettingsController', {
 
     refresh: function () {
         Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
-        PON.app.db.replicateFrom().then( info => {
+        //PON.app.db.replicateFrom().then( info => {
+        PON.app.db.syncOnce().then( info => {
             this.updateDateOnRefreshed();
         }).catch( error => {
             console.warn(error);
@@ -236,9 +236,14 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     updateDateOnRefreshed: function () {
-        Ext.Viewport.setMasked(false);
-        this.setTitle();
-        this.getViewModel().fillStores();
+        PON.app.db.query('contracts', {
+            startkey: '111.111' ,
+            endkey: '111.111'
+        }).then( _ => {
+            Ext.Viewport.setMasked(false);
+            this.setTitle();
+            this.getViewModel().fillStores();
+        });
     },
 
     doSearch: function (field, search) {

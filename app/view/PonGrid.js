@@ -31,7 +31,7 @@ Ext.define('PON.view.PonGrid', {
         text: 'Дог.',
         dataIndex: 'contract',
         align: 'right',
-        width: 75
+        width: 80
     }, {
         //xtype: 'numbercolumn',
         width: 60,
@@ -39,9 +39,14 @@ Ext.define('PON.view.PonGrid', {
         dataIndex: 'power',
         align: 'right',
         renderer: function (text, record, index, cell) {
-            let cls = record.data.active ? 'green' : 'red';
+            if (record.data.active) {
+                cell.removeCls('red');
+                cell.addCls('green');
+            } else {
+                cell.removeCls('green');
+                cell.addCls('red');
+            }
 
-            cell.addCls(cls);
             return Ext.util.Format.number(text, '0.0');
         }
     }],
@@ -49,7 +54,7 @@ Ext.define('PON.view.PonGrid', {
         reference: 'grid-header',
         xtype: 'titlebar',
         docked: 'top',
-        title: 'hello',
+        title: '',
         titleAlign: 'center',
         items: [{
             iconCls: 'x-fa fa-arrow-left',
@@ -60,6 +65,11 @@ Ext.define('PON.view.PonGrid', {
             iconCls: 'x-fa fa-info',
             disabled: true,
             handler: 'info',
+            align: 'right'
+        },{
+            reference: 'reloadBtn',
+            iconCls: 'x-fa fa-refresh',
+            handler: 'reload',
             align: 'right'
         }]
     }],

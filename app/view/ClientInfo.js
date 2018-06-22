@@ -12,18 +12,44 @@ Ext.define('PON.view.ClientInfo', {
 
     items: [{
         xtype: 'grid',
-        height: 168,
+        height: 165,
         hideHeaders: true,
         reference: 'info',
         columns: [{
             text: 'Prop',
             dataIndex: 'prop',
-            align: 'right'
+            width: 65,
+            renderer: function (value, rec, col, cell) {
+                if (value === 'location') {
+                    cell.setTools({
+                        play: {
+                            iconCls: 'x-fa fa-map-marker',
+                            align: 'right',
+                            handler: 'getLocation'
+                        }
+                    });
+                } else {
+                    return value;
+                }
+            }
         },{
             text: 'Val',
             dataIndex: 'val',
             flex: 1,
-            align: 'left'
+            align: 'left',
+            renderer: function (value, rec, col, cell) {
+                if (rec.get('prop') === 'location' && rec.dirty) {
+                    cell.setTools({
+                        save: {
+                            iconCls: 'x-fa fa-save',
+                            handler: 'saveLocation'
+                        }
+                    });
+                }
+                return value;
+
+            }
+
         }],
     },{
         xtype: 'grid',

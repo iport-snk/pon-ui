@@ -41,6 +41,8 @@ Ext.application({
 
     MATCHER: '\ufff0',
 
+    snmpApi: 'http://df.fun.co.ua/snmp.php',
+
     formatMac: function (mac) {
         return `${mac.substr(0, 2)}:${mac.substr(2, 2)}:${mac.substr(4, 2)}:${mac.substr(6, 2)}:${mac.substr(8, 2)}:${mac.substr(10, 2)}`
     },
@@ -57,22 +59,28 @@ Ext.application({
 
         //PON.utils.Auth.auth().then( user => {
         //    PON.app.user = user;
+        /*PON.app.db.query('contracts', {
+            startkey: '111.111' ,
+            endkey: '111.111'
+        }).then( _ => {});*/
+        Ext.Viewport.add([{
+            xtype: 'pon-tree'
+        },{
+            xtype: 'box-settings'
+        },{
+            xtype: 'sfp-settings'
+        },{
+            xtype: 'client-selection'
+        },{
+            xtype: 'pon-grid'
+        },{
+            xtype: 'client-info'
+        }]);
 
-            Ext.Viewport.add([{
-                xtype: 'pon-tree'
-            },{
-                xtype: 'box-settings'
-            },{
-                xtype: 'sfp-settings'
-            },{
-                xtype: 'client-selection'
-            },{
-                xtype: 'pon-grid'
-            },{
-                xtype: 'client-info'
-            }]);
+        Ext.Viewport.down('sfp-settings').fireEvent('setAction');
 
-            Ext.Viewport.down('sfp-settings').fireEvent('setAction');
+
+
 
 
         /*}).catch( err => {

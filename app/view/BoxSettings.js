@@ -80,6 +80,11 @@ Ext.define('PON.view.BoxSettings', {
         queryMode: 'local',
         forceSelection: true,
         editable: false
+    },{
+        xtype: 'textareafield',
+        reference: 'description',
+        name: 'description',
+        label: 'Описание'
     }],
     listeners: {
         setAction: 'setAction'

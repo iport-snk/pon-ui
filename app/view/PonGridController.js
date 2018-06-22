@@ -4,12 +4,21 @@ Ext.define('PON.view.PonGridController', {
 
 
     draw: function (criterion) {
-        let grid = this.getView();
+        let grid = this.getView(),
+            title = this.lookup('grid-header');
 
         grid.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.GRID);
+        title.setTitle(criterion.title);
+        PON.app.db.query('registered', {
+            startkey: `${criterion.id}`,
+            endkey: `${criterion.id}`,
+            reduce: '_count'
+        }).then( r => {
+            title.setTitle(criterion.title + ` / ${r.rows[0].value}`);
+        });
 
-        this.lookup('grid-header').setTitle(criterion.title);
+
 
         PON.app.db.query(criterion.query, {
             startkey: `${criterion.id}`,
@@ -19,6 +28,8 @@ Ext.define('PON.view.PonGridController', {
                 fields: [
                     {name: 'street'}, {name: 'house'}, {name: 'active'},
                     {name: 'sfp'},
+                    {name: 'num'},
+                    {name: 'if'},
                     {name: 'port', type: 'number'},
                     {name: 'power', type: 'number'},
                     {name: 'contract'}
@@ -54,7 +65,66 @@ Ext.define('PON.view.PonGridController', {
 
             }
         })
+    },
 
+    reload: async function () {
+        let grid = this.getView(),
+            records = grid.getStore().getData().items,
+            title = this.lookup('grid-header'),
+            caption = title.getTitle();
+
+        title.setTitle('Обновление ...');
+
+        for (let i = 0; i < records.length; i++) {
+            let signal = await fetch(
+                    `${PON.app.snmpApi}?action=rxByIf&olt=${records[i].get('olt')}&if=${records[i].get('if')}`
+                ).then(r => r.json()),
+                val;
+
+            if (signal.rx == 'Offline') {
+                val = {
+                    active: false
+                }
+            } else {
+                val = {
+                    power: signal.rx,
+                    active: true
+                }
+            }
+            records[i].set(val);
+            PON.app.db.get(records[i].get('id')).then ( doc => {
+                PON.app.db.put(Ext.apply(doc, val));
+            })
+        }
+        title.setTitle(caption);
+    },
+
+    reloadTelnet: function () {
+        let grid = this.getView(),
+            store = grid.getStore(),
+            q = {
+                ip: store.getAt(0).get('olt'),
+                port: store.getAt(0).get('port')
+            };
+
+        grid.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
+        //fetch(`http://df.fun.co.ua/pon/getSnmp.php`).then( r => r.json() ).then( data => {
+        fetch(`http://z.iport.net.ua:82/${q.ip}/${q.port}`).then( r => r.json() ).then( data => {
+            let signals = data.signals;
+
+            store.each( record => {
+                let row = signals.find( signal => signal.num === record.get('num'));
+
+                record.set(Ext.apply(row, {
+                    active: true
+                }))
+            });
+            grid.setMasked(false);
+            console.log(data)
+        })
+       /* $.get('http://df.fun.co.ua/pon/getSnmp.php').done( data => {
+           console.log(data)
+        })*/
     },
 
     allowAction: function () {

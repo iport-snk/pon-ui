@@ -70,6 +70,10 @@ Ext.define('PON.view.PonTree', {
             iconCls: 'x-fa fa-arrow-down',
             handler: 'moveDown'
         },{
+            reference: 'unbind',
+            iconCls: 'x-fa fa-trash',
+            handler: 'unbind'
+        },{
             xtype: 'spacer'
         }, {
             reference: 'editBtn',

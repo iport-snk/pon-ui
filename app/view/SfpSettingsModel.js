@@ -4,7 +4,7 @@ Ext.define('PON.view.SfpSettingsModel', {
 
     stores: {
         olts: {
-            fields: ['district', '_id', 'ports', 'districtId'],
+            fields: ['district', '_id', 'ports', 'districtId', 'ip'],
             sorters: 'district'
         },
         ports: {

@@ -4,8 +4,8 @@ Ext.define('PON.view.PonTreeController', {
 
     FIELDS: {
         box: {
-            add: ['_id', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp'],
-            update: ['_id', '_rev', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp'],
+            add: ['_id', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp', 'description'],
+            update: ['_id', '_rev', 'address', 'branch', 'coupler', 'index', 'parentId', 'splitter', 'type', 'sfp', 'description'],
         },
         client: {
             add: ['_id', 'address', 'contract', 'index', 'parentId', 'type', 'sfp'],
@@ -133,7 +133,7 @@ Ext.define('PON.view.PonTreeController', {
     },
 
     dbUpdate: function (node, data) {
-        PON.app.db.get(node.data._id).then( record => {
+        return PON.app.db.get(node.data._id).then( record => {
             let fresh = Ext.apply(record, data);
             return PON.app.db.put(fresh);
         }).then( result => {
@@ -210,6 +210,22 @@ Ext.define('PON.view.PonTreeController', {
             clients = store.findNode('type', 'group');
 
         return clients.childNodes;
+    },
+
+    unbind: function () {
+        let target = this.getView().getSelections()[0],
+            unresolvedRoot = this.getView().getStore().findNode('id', 'undefGroup'),
+            type = target.get('type');
+
+        if ( type === 'client') {
+            this.dbUpdate(target, {parentId: null}).then( _ => {
+                unresolvedRoot.appendChild(target);
+                console.log(target);
+            });
+        } else if (type === 'box' ) {
+            // unbind all children
+            // delete from DB
+        }
     }
 
 

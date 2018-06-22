@@ -2,7 +2,7 @@ Ext.define('PON.view.ClientInfoController', {
     extend: 'Ext.app.ViewController',
     alias: 'controller.client-info',
 
-    snmpApi: 'http://df.fun.co.ua/snmp.php',
+
     keepRunning: false,
 
     save: function() {
@@ -28,8 +28,6 @@ Ext.define('PON.view.ClientInfoController', {
             action: 'getSignalHistory',
             mac: this.info.onu
         }).done( data => {
-
-
             signals.setStore(Ext.create('Ext.data.Store', {
                 fields: ['pwr', 'datetime'],
                 data: data
@@ -38,24 +36,51 @@ Ext.define('PON.view.ClientInfoController', {
         })
     },
 
+    saveLocation: function (grid, e) {
+        let pos = e.record.get('val').split('|')[1].trim();
+        e.record.store.suspendEvents();
+        e.record.set('val', pos);
+        e.record.store.resumeEvents();
+        e.record.commit();
+        e.tool.hide();
+
+        PON.app.db.get(this.context.info.id).then( doc => {
+            PON.app.db.put(Ext.apply(doc, {location: pos}));
+        })
+    },
+
+    getLocation: function (grid, e) {
+        let tool = e.tool;
+        tool.hide();
+
+        navigator.geolocation.getCurrentPosition(position => {
+            tool.show();
+            e.record.set({val: `точность: ${parseInt(position.coords.accuracy)} m | ${position.coords.latitude} ${position.coords.longitude}`});
+        }, error => {
+            console.warn(error);
+            tool.show();
+        }, {
+            enableHighAccuracy: true
+        });
+    },
+
     setProps: function (info) {
         let street = info.get('street');
 
-        this.lookup('titlebar').setTitle(PON.app.formatMac(this.info.onu));
+        this.lookup('titlebar').setTitle(PON.app.formatMac(this.info.onu) + ' : ' + info.get('contract'));
 
         let data = [
-            {prop: 'dB', val: `${info.get('power')} / ${info.get('time')}`}
+            {prop: 'dB', val: `${info.get('power')} / ${info.get('time')}`},
+            {prop: 'location', val: info.get('location')}
         ];
 
         if (!Ext.isEmpty(street)) {
             data.push({
                 prop: 'Адрес', val: street + ' ,' + info.get('house')
-            },{
-                prop: 'Договор', val: info.get('contract'),
             })
         }
 
-        PON.app.db.get('o.' + this.info.olt).then( olt => {
+        PON.app.db.get('o.' + this.info.sfp).then( olt => {
             data.push({
                 prop: 'SFP',
                 val: `${olt.district} / Порт:  ${info.get('port')}`
@@ -67,19 +92,17 @@ Ext.define('PON.view.ClientInfoController', {
         })
     },
 
-
-
     startRxRefreshing: async function () {
         let rxRecord = this.lookup('info').getStore().findRecord('prop', 'dB');
 
-        let mac = PON.app.formatMac(this.info.onu),
-            sleep = async ms => new Promise(resolve => setTimeout(resolve, ms));
+        //let mac = PON.app.formatMac(this.info.onu);
+        let sleep = async ms => new Promise(resolve => setTimeout(resolve, ms));
 
-        let iface = await fetch(`${this.snmpApi}?action=ifByMac&olt=${this.info.olt}&onu=${mac}`).then(r => r.json());
+        //let iface = await fetch(`${this.snmpApi}?action=ifByMac&olt=${this.info.olt}&onu=${mac}`).then(r => r.json());
 
         while (this.keepRunning) {
             let signal = await fetch(
-                `${this.snmpApi}?action=rxByIf&olt=${this.info.olt}&if=${iface.if}`
+                `${PON.app.snmpApi}?action=rxByIf&olt=${this.info.olt}&if=${this.info.if}`
             ).then(r => r.json());
 
             rxRecord.set('val', `${signal.rx} / ${Ext.Date.format(new Date(), 'H:i:s')}`);
@@ -92,6 +115,10 @@ Ext.define('PON.view.ClientInfoController', {
         if (this.keepRunning) {
             this.lookup('rx-refresher').setIconCls('x-fa fa-stop');
             this.startRxRefreshing();
+            setTimeout( _ => {
+                this.keepRunning = true;
+                this.toggleRxRefreshing();
+            }, 7000);
         } else {
             this.lookup('rx-refresher').setIconCls('x-fa fa-refresh')
         }
@@ -100,12 +127,15 @@ Ext.define('PON.view.ClientInfoController', {
     setAction: function (context) {
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.CLIENT_INFO);
         this.onSaveFunction = context.cb;
+        this.lookup('rx-refresher').setIconCls('x-fa fa-refresh');
+        this.context = context;
 
         if (context) {
-
             this.info = {
                 onu: context.info.get('id').split('.')[1],
-                olt: context.info.get('sfp')
+                sfp: context.info.get('sfp'),
+                olt: context.info.get('olt'),
+                if: context.info.get('if')
             };
 
             this.gettingBackCardId = context.gettingBackCardId;

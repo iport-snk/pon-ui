@@ -11,6 +11,7 @@ Ext.define('PON.utils.DB', {
             db.replicateFrom = this.replicateFrom.bind(db);
             db.refreshSignals = this.refreshSignals.bind(db);
             db.syncOn = this.syncOn.bind(db);
+            db.syncOnce = this.syncOnce.bind(db);
 
             return db;
         },
@@ -36,6 +37,13 @@ Ext.define('PON.utils.DB', {
                 console.log('DB error');
                 console.log(err);
             });
+        },
+
+        syncOnce: function () {
+            return PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
+                live: false,
+                retry: true
+            })
         },
 
         replicateFrom: function () {
