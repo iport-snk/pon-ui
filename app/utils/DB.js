@@ -2,22 +2,25 @@ Ext.define('PON.utils.DB', {
     alias: 'utils.db',
 
     statics: {
-        remote: 'http://91.226.253.11:5984/pon',
-        local: 'pon',
+        remote: 'http://91.226.253.11:5984/network',
+        local: 'network',
         init: function () {
-            let db = new PouchDB(PON.utils.DB.local);
+            let db = PON.app.db = new PouchDB(PON.utils.DB.local, {auto_compaction: true});
 
             db.putOnus = this.putOnus.bind(db);
             db.replicateFrom = this.replicateFrom.bind(db);
             db.refreshSignals = this.refreshSignals.bind(db);
             db.syncOn = this.syncOn.bind(db);
             db.syncOnce = this.syncOnce.bind(db);
+            db.syncAll = this.syncAll.bind(db);
 
-            return db;
+            PON.app.__signals = new PouchDB('signals', {auto_compaction: true});
+
+            return PON.app.__signals.get('signals').then( doc => {PON.app.signals = doc});
         },
 
         syncOn: function () {
-            let sync = PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
+            PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
                 live: true,
                 retry: true
             }).on('change', function (info) {
@@ -43,6 +46,24 @@ Ext.define('PON.utils.DB', {
             return PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
                 live: false,
                 retry: true
+            })
+        },
+
+        syncAll: function () {
+            return Promise.all([
+                PON.app.db.syncOnce(),
+                PON.utils.DB.syncSignals()
+            ]).then(
+                _ => PON.app.__signals.get('signals')
+            ).then( signals => {
+                PON.app.signals = signals
+            })
+        },
+
+        syncSignals: function () {
+            return PON.app.__signals.destroy().finally( _ => {
+                PON.app.__signals = new PouchDB('signals', {auto_compaction: true});
+                return PouchDB.replicate('http://iport:iport@91.226.253.11:5984/signals', 'signals')
             })
         },
 

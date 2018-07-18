@@ -39,26 +39,7 @@ Ext.define('PON.view.PonTreeController', {
         return this.getView().getRootNode().get('sfp');
     },
 
-    getNextBoxId: function (items) {
-        let boxes = items.filter( _ => _.data.type === 'box'),
-            lastId = 0;
-
-        if (boxes.length === 0) {
-            return 0
-        } else if (boxes.length === 1) {
-            lastId = boxes[0].id
-        } else {
-            lastId = boxes.reduce(function(a, b) {
-                return a.id > b.id ? a.id : b.id;
-            });
-        }
-
-        let id = parseInt(lastId.substr(lastId.lastIndexOf('.') + 1));
-        return id + 1;
-    },
-
     applyAddBoxSettings: function (item, tree) {
-        //let id = this.getNextBoxId(tree.getStore().getData().items);
         let id = (new Date()).getTime(),
             sfp = this.getSfp();
 
@@ -103,7 +84,9 @@ Ext.define('PON.view.PonTreeController', {
     },
 
     dbPost: function (node, fields) {
-        let data = {}, keys = fields.forEach( key => data[key] = node.get(key));
+        let data = {};
+
+        fields.forEach( key => data[key] = node.get(key));
 
         PON.app.db.post(data).then( result => {
             node.setId(result.id);
@@ -125,7 +108,9 @@ Ext.define('PON.view.PonTreeController', {
     },
 
     dbPut: function (node, fields) {
-        let data = {}, keys = fields.forEach( key => data[key] = node.get(key));
+        let data = {};
+
+        fields.forEach( key => data[key] = node.get(key));
 
         PON.app.db.put(data).then( result => {
             node.set('_rev', result.rev);
@@ -190,19 +175,25 @@ Ext.define('PON.view.PonTreeController', {
     },
 
     selected: function (tree, selection) {
-        if (!Ext.isArray(selection) || selection[0].data.id.endsWith('.undef')) {
-            this.setItemActions('disable');
-        } else {
-            this.setItemActions('enable');
+        this.setItemActionsDisabled();
+
+        try {
+            let type = selection[0].get('type');
+
+            this.actions[type].forEach(btn => this.lookup(btn).enable())
+        } catch (e) {
         }
+
     },
 
-    setItemActions: function (action) {
-        let f = Ext.isObject(action) ? 'disable' : action;
+    actions: {
+        box: ['addBoxBtn', 'addBranchBtn', 'addCustomerBtn', 'moveUp', 'moveDown', 'editBtn', 'unbind'],
+        client: ['moveUp', 'moveDown', 'editBtn', 'unbind'],
+        group: ['addBoxBtn']
+    },
 
-        ['addBranchBtn', 'addCustomerBtn', 'moveUp', 'moveDown', 'editBtn'].forEach(
-            btn => this.lookup(btn)[f]()
-        )
+    setItemActionsDisabled: function () {
+        this.actions.box.concat(this.actions.client, this.actions.group).forEach(btn => this.lookup(btn).disable())
     },
 
     getUnresolvedClients: function () {
@@ -214,17 +205,27 @@ Ext.define('PON.view.PonTreeController', {
 
     unbind: function () {
         let target = this.getView().getSelections()[0],
-            unresolvedRoot = this.getView().getStore().findNode('id', 'undefGroup'),
+            store = this.getView().getStore(),
+            unresolvedRoot = store.findNode('id', 'undefGroup'),
             type = target.get('type');
 
         if ( type === 'client') {
-            this.dbUpdate(target, {parentId: null}).then( _ => {
-                unresolvedRoot.appendChild(target);
-                console.log(target);
-            });
+            this.dbUpdate(target, {parentId: null}).then( _ => unresolvedRoot.appendChild(target));
         } else if (type === 'box' ) {
             // unbind all children
             // delete from DB
+            Promise.all(
+                target.childNodes.map( node => {
+                    let parent = node.get('type') === 'client' ? unresolvedRoot : target.parentNode,
+                        parentId = node.get('type') === 'client' ? null : parent.get('id');
+
+                    return this.dbUpdate(node, {parentId: parentId}).then( _ => parent.appendChild(node));
+                })
+            ).then( _ => {
+                PON.app.db.get(target.get('id')).then( doc => PON.app.db.remove(doc));
+                store.remove(target);
+            })
+
         }
     }
 

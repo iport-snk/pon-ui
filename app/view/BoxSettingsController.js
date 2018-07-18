@@ -2,10 +2,6 @@ Ext.define('PON.view.BoxSettingsController', {
     extend: 'Ext.app.ViewController',
     alias: 'controller.box-settings',
 
-    getDirtyFields: function () {
-        this.getView().getFields
-    },
-
     save: function() {
         let data = Ext.apply({
             type: 'box'
@@ -31,15 +27,24 @@ Ext.define('PON.view.BoxSettingsController', {
         if (context.formdData) this.getView().setValues(context.formdData);
     },
 
-    getLocation: function (source) {
-        source.setLabel(`Координаты (поиск ...)`);
-        navigator.geolocation.getCurrentPosition(position => {
-            source.setLabel(`Координаты (точность: ${parseInt(position.coords.accuracy)} m)`);
-            source.setValue(position.coords.latitude + " , " + position.coords.longitude);
-        }, error => {
-            console.warn(error);
-        }, {
-            enableHighAccuracy: true
+    getLocation: async function () {
+        let field = this.lookup('address'),
+            position = field.getValue();
+
+        if (Ext.isEmpty(position)) {
+            position = await PON.app.getGps();
+        } else {
+            position = position.split(" ");
+        }
+
+
+        Ext.Viewport.down('pon-map').fireEvent('setAction', {
+            data: position,
+            back: _ => Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.BOX_SETTINGS),
+            save: position => field.setValue(`${position[0]} ${position[1]}`),
+            cb: data => {
+
+            }
         });
     }
 });

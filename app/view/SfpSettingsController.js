@@ -83,7 +83,7 @@ Ext.define('PON.view.SfpSettingsController', {
 
         Promise.all([
             this.getBoxes(rootId),
-            this.getUnresolvedClients(rootId)
+            this.getClients(rootId)
         ]).then( stores => {
             let [boxes, clients] = stores;
 
@@ -117,7 +117,7 @@ Ext.define('PON.view.SfpSettingsController', {
         })
     },
 
-    getUnresolvedClients: function (sfp) {
+    getClients: function (sfp) {
         return PON.app.db.query('clients', {
             startkey: sfp ,
             endkey: sfp
@@ -127,8 +127,6 @@ Ext.define('PON.view.SfpSettingsController', {
                 row.value.children = [];
                 if (Ext.isEmpty(row.value.parentId)) {
                     row.value.parentId = 'undefGroup';
-                } else {
-                    console.log(row.value)
                 }
 
                 return row.value;
@@ -138,6 +136,7 @@ Ext.define('PON.view.SfpSettingsController', {
 
 
     buildTree: function (data, sfp) {
+        Ext.Viewport.setActiveItem(0);
         let tree = Ext.ComponentQuery.query('pon-tree')[0];
         let store = Ext.create('Ext.data.TreeStore', {
             type: 'memory',
@@ -149,13 +148,13 @@ Ext.define('PON.view.SfpSettingsController', {
             data: data
         });
 
-        tree.setTitle(`${sfp.district} : ${sfp.port}`);
+        tree.down('[reference="grid-header"]').setTitle(`${sfp.district} : ${sfp.port}`);
 
         tree.relayEvents(store, ['datachanged'], 'store');
         tree.setStore(store);
         tree.getRootNode().set('sfp', sfp);
 
-        Ext.Viewport.setActiveItem(0);
+
     },
 
     loadOlts: function () {
@@ -219,24 +218,26 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     setTitle: function () {
-        this.getView().setTitle('Индексация ...');
-        PON.app.db.query('clients', {limit: 1}).then(r => {
-            this.getView().setTitle(r.rows[0].value.time);
-        }).catch( error => this.getView().setTitle('Статистика не загружена'));
+        if (PON.app.signals) {
+            this.getView().setTitle(PON.app.signals.time);
+        } else {
+            this.getView().setTitle('Статистика не загружена')
+        }
+
     },
 
     refresh: function () {
         Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
-        //PON.app.db.replicateFrom().then( info => {
-        PON.app.db.syncOnce().then( info => {
-            this.updateDateOnRefreshed();
-        }).catch( error => {
+
+        PON.app.db.syncAll().then(
+            info => this.updateDateOnRefreshed()
+        ).catch( error => {
             console.warn(error);
         })
     },
 
     updateDateOnRefreshed: function () {
-        PON.app.db.query('contracts', {
+        return PON.app.db.query('contracts', {
             startkey: '111.111' ,
             endkey: '111.111'
         }).then( _ => {
@@ -260,11 +261,14 @@ Ext.define('PON.view.SfpSettingsController', {
                 limit: 12
             }).then(r => {
                 store.setData(r.rows.map( row => {
-                    let sfp = row.value.sfp.split('.');
+                    let sfp = row.value.sfp.split('.'),
+                        mac = row.id.split('.')[1],
+                        signal = PON.app.signals.data[mac];
 
                     row.value.sfp = sfp[0];
                     row.value.port = sfp[1];
                     row.value.id = row.value._id;
+                    Ext.apply(row.value, signal);
                     return row.value
                 }));
             }).catch( error => {

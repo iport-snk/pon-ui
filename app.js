@@ -16,6 +16,7 @@ Ext.application({
         'PON.view.BoxSettings',
         'PON.view.ClientSelection',
         'PON.view.ClientInfo',
+        'PON.view.PonMap',
     ],
 
     viewport: {
@@ -36,7 +37,8 @@ Ext.application({
         GRID: 4,
         CLIENT_SELECTION: 3,
         BOX_SETTINGS: 1,
-        CLIENT_INFO: 5
+        CLIENT_INFO: 5,
+        MAP: 6
     },
 
     MATCHER: '\ufff0',
@@ -54,15 +56,27 @@ Ext.application({
         return name;
     },
 
-    launch: function () {
-        this.db = PON.utils.DB.init();
+    keepAwake: function () {
+        if (window.plugins && window.plugins.insomnia) window.plugins.insomnia.keepAwake();
+    },
 
-        //PON.utils.Auth.auth().then( user => {
-        //    PON.app.user = user;
-        /*PON.app.db.query('contracts', {
-            startkey: '111.111' ,
-            endkey: '111.111'
-        }).then( _ => {});*/
+    allowSleep: function () {
+        if (window.plugins && window.plugins.insomnia) window.plugins.insomnia.allowSleepAgain();
+    },
+
+    getGps: function () {
+        return new Promise( (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                position => resolve([position.coords.latitude, position.coords.longitude]),
+                reject,
+                {enableHighAccuracy: true}
+            )
+        })
+    },
+
+    launch: async function () {
+        PON.app.keepAwake();
+
         Ext.Viewport.add([{
             xtype: 'pon-tree'
         },{
@@ -75,37 +89,14 @@ Ext.application({
             xtype: 'pon-grid'
         },{
             xtype: 'client-info'
+        },{
+            xtype: 'pon-map'
         }]);
-
+        try {
+            await PON.utils.DB.init()
+        } catch (e) {
+            console.log('signals is not replicated yet')
+        }
         Ext.Viewport.down('sfp-settings').fireEvent('setAction');
-
-
-
-
-
-        /*}).catch( err => {
-
-            Ext.Msg.alert(
-                err.status,
-                err.user.id + "<br /><br />" + err.user.email + "<br /><br />" + err.user.name
-            );
-
-        });*/
-    },
-    _launch: function () {
-        this.db = PON.utils.DB.init();
-        Ext.Viewport.add([{
-            xtype: 'pon-tree'
-        },{
-            xtype: 'box-settings'
-        },{
-            xtype: 'sfp-settings'
-        },{
-            xtype: 'client-selection'
-        },{
-            xtype: 'pon-grid'
-        }]);
-        Ext.Viewport.setActiveItem(2);
-        Ext.ComponentQuery.query('sfp-settings')[0].getViewModel().fillStores();
     }
 });

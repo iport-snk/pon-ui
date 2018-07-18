@@ -44,24 +44,33 @@ Ext.define('PON.view.ClientInfoController', {
         e.record.commit();
         e.tool.hide();
 
+        this.context.info.set('location', pos);
+
         PON.app.db.get(this.context.info.id).then( doc => {
             PON.app.db.put(Ext.apply(doc, {location: pos}));
         })
     },
 
-    getLocation: function (grid, e) {
-        let tool = e.tool;
-        tool.hide();
+    getLocation: async function (grid, e) {
+        let position = this.context.info.get('location');
 
-        navigator.geolocation.getCurrentPosition(position => {
-            tool.show();
-            e.record.set({val: `точность: ${parseInt(position.coords.accuracy)} m | ${position.coords.latitude} ${position.coords.longitude}`});
-        }, error => {
-            console.warn(error);
-            tool.show();
-        }, {
-            enableHighAccuracy: true
+        if (Ext.isEmpty(position)) {
+            position = await PON.app.getGps();
+        } else {
+            position = position.split(" ")
+        }
+
+
+        Ext.Viewport.down('pon-map').fireEvent('setAction', {
+            data: position,
+            back: _ => Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.CLIENT_INFO),
+            save: position => e.record.set({val: `точность: 1m | ${position[0]} ${position[1]}`}),
+            cb: data => {
+
+            }
         });
+
+
     },
 
     setProps: function (info) {
@@ -118,7 +127,7 @@ Ext.define('PON.view.ClientInfoController', {
             setTimeout( _ => {
                 this.keepRunning = true;
                 this.toggleRxRefreshing();
-            }, 7000);
+            }, 20000);
         } else {
             this.lookup('rx-refresher').setIconCls('x-fa fa-refresh')
         }

@@ -32,7 +32,7 @@ Ext.define('PON.view.BoxSettings', {
         editable: false,
         triggers: {
             location: {
-                iconCls: 'x-fa fa-refresh',
+                iconCls: 'x-fa fa-map-marker',
                 handler: 'getLocation'
             },
         },

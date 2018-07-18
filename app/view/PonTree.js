@@ -45,9 +45,6 @@ Ext.define('PON.view.PonTree', {
         xtype: 'toolbar',
         docked: 'bottom',
         items: [{
-            iconCls: 'x-fa fa-arrow-left',
-            handler: 'back'
-        }, '->', {
             reference: 'addBoxBtn',
             iconCls: 'x-fa fa-sitemap',
             handler: 'addBox'
@@ -75,16 +72,29 @@ Ext.define('PON.view.PonTree', {
             handler: 'unbind'
         },{
             xtype: 'spacer'
-        }, {
+        },{
             reference: 'editBtn',
             iconCls: 'x-fa fa-edit',
             handler: 'edit'
+        },{
+            xtype: 'spacer'
+        }]
+    },{
+        reference: 'grid-header',
+        xtype: 'titlebar',
+        docked: 'top',
+        title: '',
+        titleAlign: 'center',
+        items: [{
+            iconCls: 'x-fa fa-arrow-left',
+            handler: 'back',
+            align: 'left'
         }]
     }],
     listeners: {
         //storedatachanged: 'datachanged',
         select: 'selected',
-        deselect: 'setItemActions',
-        storechange: 'setItemActions'
+        deselect: 'setItemActionsDisabled',
+        storechange: 'setItemActionsDisabled'
     }
 });

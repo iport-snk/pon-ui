@@ -10,15 +10,6 @@ Ext.define('PON.view.PonGridController', {
         grid.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.GRID);
         title.setTitle(criterion.title);
-        PON.app.db.query('registered', {
-            startkey: `${criterion.id}`,
-            endkey: `${criterion.id}`,
-            reduce: '_count'
-        }).then( r => {
-            title.setTitle(criterion.title + ` / ${r.rows[0].value}`);
-        });
-
-
 
         PON.app.db.query(criterion.query, {
             startkey: `${criterion.id}`,
@@ -28,21 +19,27 @@ Ext.define('PON.view.PonGridController', {
                 fields: [
                     {name: 'street'}, {name: 'house'}, {name: 'active'},
                     {name: 'sfp'},
-                    {name: 'num'},
                     {name: 'if'},
                     {name: 'port', type: 'number'},
                     {name: 'power', type: 'number'},
-                    {name: 'contract'}
+                    {name: 'contract'},
+                    {name: 'corp'}
                 ],
                 data: result.rows.map( row => {
-                    let port = row.value.sfp.split('.');
+                    let port = row.value.sfp.split('.'),
+                        mac = row.id.split('.')[1],
+                        signal = PON.app.signals.data[mac];
 
                     row.value.port = port[1];
                     row.value.sfp = port[0];
                     row.value.id = row.value._id;
+
+                    Ext.apply(row.value, signal);
+
                     return row.value
                 })
             }));
+            title.setTitle(criterion.title + ` / ${result.rows.length}`);
             this.lookup('infoBtn').disable();
             grid.setMasked(false);
         });
@@ -81,7 +78,7 @@ Ext.define('PON.view.PonGridController', {
                 ).then(r => r.json()),
                 val;
 
-            if (signal.rx == 'Offline') {
+            if (signal.rx === 'Offline') {
                 val = {
                     active: false
                 }

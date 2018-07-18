@@ -9,7 +9,14 @@ Ext.define('PON.view.PonGrid', {
     columns: [{
         text: 'Адрес',
         dataIndex: 'address',
-        renderer: function (text, record) {
+        renderer: function (text, record, index, cell) {
+            if (record.data.corp === "1") {
+                cell.addCls('red');
+            } else {
+                cell.removeCls('red');
+            }
+
+
             if (Ext.isEmpty(record.get('street'))) {
                 return record.get('id');
             } else {
