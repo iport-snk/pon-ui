@@ -10,29 +10,31 @@ Ext.define('PON.view.SfpSettings', {
     xtype: 'sfp-settings',
     controller: 'sfp-settings',
     trackResetOnLoad: true,
-    tools: [{
+    /*tools: [{
         type: 'refresh',
         handler: 'refresh'
-    }],
+    }],*/
     //bodyPadding: 20,
     scrollable: 'y',
     items: [{
         xtype: 'toolbar',
-        hidden: true,
+        hidden: false,
         docked: 'top',
         items: [{
-            text: 'Затухания',
-            xtype: 'button',
-            margin: '0 10',
-            iconCls: 'x-fa fa-download',
-            handler: 'loadOnus',
-            minWidth: 85
+            iconCls: 'x-fa fa-arrow-left',
+            handler: 'back',
+            align: 'left'
         },{
-            text: 'OLTs',
+            xtype: 'spacer'
+        },{
+            text: 'Статистика не загружена',
+            disabled: true,
+            reference: 'syncSignalsBtn',
             xtype: 'button',
-            margin: '0 10',
+            //margin: '0 10',
             iconCls: 'x-fa fa-download',
-            handler: 'loadOlts',
+            handler: 'loadSignals',
+            iconAlign: 'right',
             minWidth: 85
         }]
     },{

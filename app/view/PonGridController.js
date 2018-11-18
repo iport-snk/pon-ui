@@ -74,7 +74,7 @@ Ext.define('PON.view.PonGridController', {
 
         for (let i = 0; i < records.length; i++) {
             let signal = await fetch(
-                    `${PON.app.snmpApi}?action=rxByIf&olt=${records[i].get('olt')}&if=${records[i].get('if')}`
+                    `${PON.app.settings.snmpApi}?action=rxByIf&olt=${records[i].get('olt')}&if=${records[i].get('if')}`
                 ).then(r => r.json()),
                 val;
 
@@ -94,34 +94,6 @@ Ext.define('PON.view.PonGridController', {
             })
         }
         title.setTitle(caption);
-    },
-
-    reloadTelnet: function () {
-        let grid = this.getView(),
-            store = grid.getStore(),
-            q = {
-                ip: store.getAt(0).get('olt'),
-                port: store.getAt(0).get('port')
-            };
-
-        grid.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
-        //fetch(`http://df.fun.co.ua/pon/getSnmp.php`).then( r => r.json() ).then( data => {
-        fetch(`http://z.iport.net.ua:82/${q.ip}/${q.port}`).then( r => r.json() ).then( data => {
-            let signals = data.signals;
-
-            store.each( record => {
-                let row = signals.find( signal => signal.num === record.get('num'));
-
-                record.set(Ext.apply(row, {
-                    active: true
-                }))
-            });
-            grid.setMasked(false);
-            console.log(data)
-        })
-       /* $.get('http://df.fun.co.ua/pon/getSnmp.php').done( data => {
-           console.log(data)
-        })*/
     },
 
     allowAction: function () {

@@ -17,6 +17,9 @@ Ext.application({
         'PON.view.ClientSelection',
         'PON.view.ClientInfo',
         'PON.view.PonMap',
+        'PON.view.Start',
+        'PON.view.Tasks',
+        'PON.view.Settings'
     ],
 
     viewport: {
@@ -31,6 +34,22 @@ Ext.application({
         // node box index:      n.[olt].[port].b.[id]
     },
 
+    jiraAuth: function () {
+        fetch('http://jira.iport.net.ua/rest/api/2/issue/AD-83', {
+            method: 'GET',
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "application/json; charset=utf-8",
+                "Authorization" : 'Basic ' + btoa('ok:xxxxx')
+
+            }
+        }).then( _ => {
+            console.log(_)
+        }).catch( _ => {
+            console.log(_)
+        })
+    },
+
     CARD_INDEXES: {
         SFP_SELECTION: 2,
         TREE: 0,
@@ -38,12 +57,13 @@ Ext.application({
         CLIENT_SELECTION: 3,
         BOX_SETTINGS: 1,
         CLIENT_INFO: 5,
-        MAP: 6
+        MAP: 6,
+        MAIN: 7,
+        TASKS: 8,
+        SETTINGS: 9
     },
 
     MATCHER: '\ufff0',
-
-    snmpApi: 'http://df.fun.co.ua/snmp.php',
 
     formatMac: function (mac) {
         return `${mac.substr(0, 2)}:${mac.substr(2, 2)}:${mac.substr(4, 2)}:${mac.substr(6, 2)}:${mac.substr(8, 2)}:${mac.substr(10, 2)}`
@@ -90,13 +110,23 @@ Ext.application({
         },{
             xtype: 'client-info'
         },{
-            xtype: 'pon-map'
+            xtype: 'pon-map',
+            autoDestroy: false
+        },{
+            xtype: 'start'
+        },{
+            xtype: 'tasks'
+        },{
+            xtype: 'settings'
         }]);
         try {
-            await PON.utils.DB.init()
+            await PON.utils.DB.init();
+
         } catch (e) {
-            console.log('signals is not replicated yet')
+            console.log(e)
         }
-        Ext.Viewport.down('sfp-settings').fireEvent('setAction');
+
+        Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN);
+
     }
 });

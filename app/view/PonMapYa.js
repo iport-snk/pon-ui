@@ -1,11 +1,14 @@
-Ext.define('PON.view.PonMap', {
-    extend: 'Ext.panel.Panel',
-    xtype: 'pon-map',
-    requires: [
-        'PON.view.PonMapController'
+Ext.define('PON.view.PonMapYa', {
+    extend: 'Ext.Panel',
+    xtype: 'pon-map-ya',
+    mixins: ['Ext.mixin.Mashup'],
+    requiredScripts: [
+        'https://api-maps.yandex.ru/2.1/?lang=ru_RU'
+        //'//maps.googleapis.com/maps/api/js?key=AIzaSyD52ON0i4XrydN5OPKn4QHKY2Bd4QXztlU'
     ],
-    controller: 'map',
-    html: '<div class = "map" id = "map"></div>',
+    requires: [
+        'PON.view.PonMapYaController'
+    ],
     items: [{
         reference: 'header',
         xtype: 'titlebar',
@@ -22,12 +25,13 @@ Ext.define('PON.view.PonMap', {
             align: 'right'
         }]
     }],
+    controller: 'pon-map',
+    layout: 'fit',
+    shadow: true,
+    cls: 'map-container',
     listeners: {
-        //painted: 'drawHere',
-        painted: 'drawLeaf',
+        painted: 'draw',
         setAction: 'setAction'
-
     }
-
 
 });

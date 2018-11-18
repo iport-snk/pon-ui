@@ -153,54 +153,7 @@ Ext.define('PON.view.SfpSettingsController', {
         tree.relayEvents(store, ['datachanged'], 'store');
         tree.setStore(store);
         tree.getRootNode().set('sfp', sfp);
-
-
     },
-
-    loadOlts: function () {
-        Ext.Viewport.setMasked({
-            xtype: 'loadmask',
-            message: 'Загрузка'
-        });
-
-        $.get('http://stat.fun.co.ua/geocode.php', {
-            action: 'getOlts'
-        }).done( data => {
-            data.forEach( async _ => {
-                let dr, record = {
-                    _id: 'o.' + _.olt,
-                    type: 'olt',
-                    district: _.place,
-                    numsfp: _.numsfp,
-                    ports: _.ports
-                };
-
-                try {
-                    dr = await PON.app.db.get(record._id);
-                    record._rev = dr._rev;
-                } catch (e) {
-
-                } finally {
-                    PON.app.db.put(record);
-
-                }
-            });
-
-            Ext.Viewport.setMasked(false);
-        });
-    },
-
-    loadOnus: function () {
-        Ext.Viewport.setMasked({
-            xtype: 'loadmask',
-            message: 'Загрузка'
-        });
-
-        PON.app.db.refreshSignals().then( info => {
-            this.updateDateOnRefreshed()
-        })
-    },
-
 
     setActionsEnabled: function (action) {
         let f = Ext.isObject(action) || Ext.isEmpty(action) ? 'enable' : action;
@@ -213,15 +166,27 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     showTree: function () {
-        //PON.app.db.syncOn();
         this.loadBranch();
     },
 
+    loadSignals: async function () {
+        Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка сигналов ОНУ' });
+        await PON.utils.DB.updateSignals();
+        Ext.Viewport.setMasked(false);
+        this.setTitle();
+    },
+
     setTitle: function () {
+        let button = this.lookup('syncSignalsBtn');
+
         if (PON.app.signals) {
-            this.getView().setTitle(PON.app.signals.time);
+            let date = PON.app.signals.time.split(':'),
+                formatted = `${date[0]}:${date[1]}`;
+
+            button.setText(formatted);
+            button.setDisabled(false);
         } else {
-            this.getView().setTitle('Статистика не загружена')
+            button.setText('Статистика не загружена')
         }
 
     },
@@ -237,13 +202,22 @@ Ext.define('PON.view.SfpSettingsController', {
     },
 
     updateDateOnRefreshed: function () {
+        Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: Договоров' });
         return PON.app.db.query('contracts', {
-            startkey: '111.111' ,
-            endkey: '111.111'
+            startkey: '111.111' , endkey: '111.111'
         }).then( _ => {
-            Ext.Viewport.setMasked(false);
+            Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: Улиц' });
+            return PON.app.db.query('streets', { startkey: '' , endkey: '' });
+        }).then( _ => {
+            Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: SFP' });
+            return PON.app.db.query('clients', { startkey: '' , endkey: '' });
+        }).then( _ => {
+            Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: Боксов' });
+            return PON.app.db.query('boxes', { startkey: '' , endkey: '' });
+        }).then( _ => {
             this.setTitle();
             this.getViewModel().fillStores();
+            Ext.Viewport.setMasked(false);
         });
     },
 
@@ -304,6 +278,10 @@ Ext.define('PON.view.SfpSettingsController', {
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.SFP_SELECTION);
         this.getViewModel().fillStores();
         this.setTitle();
+    },
+
+    back: function  () {
+        Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN);
     }
 
 });

@@ -14,6 +14,11 @@ Ext.define('PON.view.ClientInfo', {
         xtype: 'grid',
         height: 165,
         hideHeaders: true,
+        disableSelection: true,
+        selectable: {
+            rows: false,
+            cells: false
+        },
         reference: 'info',
         columns: [{
             text: 'Prop',

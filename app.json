@@ -203,9 +203,7 @@
      *
      */
     "js": [
-        {
-            "path": "${framework.dir}/build/ext-modern-all-debug.js"
-        },
+        { "path": "${framework.dir}/build/ext-modern-all-debug.js" },
         {
             "path": "app.js",
             "bundle": true

@@ -62,6 +62,7 @@ Ext.define('PON.view.ClientInfoController', {
 
 
         Ext.Viewport.down('pon-map').fireEvent('setAction', {
+            title: this.lookup('titlebar').getTitle(),
             data: position,
             back: _ => Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.CLIENT_INFO),
             save: position => e.record.set({val: `точность: 1m | ${position[0]} ${position[1]}`}),
@@ -111,7 +112,7 @@ Ext.define('PON.view.ClientInfoController', {
 
         while (this.keepRunning) {
             let signal = await fetch(
-                `${PON.app.snmpApi}?action=rxByIf&olt=${this.info.olt}&if=${this.info.if}`
+                `${PON.app.settings.snmpApi}?action=rxByIf&olt=${this.info.olt}&if=${this.info.if}`
             ).then(r => r.json());
 
             rxRecord.set('val', `${signal.rx} / ${Ext.Date.format(new Date(), 'H:i:s')}`);

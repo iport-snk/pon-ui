@@ -2,25 +2,41 @@ Ext.define('PON.utils.DB', {
     alias: 'utils.db',
 
     statics: {
-        remote: 'http://91.226.253.11:5984/network',
-        local: 'network',
-        init: function () {
-            let db = PON.app.db = new PouchDB(PON.utils.DB.local, {auto_compaction: true});
+        init: async function () {
+            let settings = localStorage.getItem('PON.app.settings');
+            if (settings) PON.app.settings = JSON.parse(settings);
+            //if (!settings) throw 'need to set the DB url';
+            //PON.app.settings = JSON.parse(settings);
+
+            let db = PON.app.db = new PouchDB('network', {auto_compaction: true});
 
             db.putOnus = this.putOnus.bind(db);
-            db.replicateFrom = this.replicateFrom.bind(db);
-            db.refreshSignals = this.refreshSignals.bind(db);
             db.syncOn = this.syncOn.bind(db);
             db.syncOnce = this.syncOnce.bind(db);
             db.syncAll = this.syncAll.bind(db);
 
             PON.app.__signals = new PouchDB('signals', {auto_compaction: true});
 
-            return PON.app.__signals.get('signals').then( doc => {PON.app.signals = doc});
+            return PON.app.db.get('settings').then( settings => {
+                Object.assign(PON.app.settings, settings);
+                return PON.app.__signals.get('signals');
+            }).then( signals => {
+                PON.app.signals = signals
+            });
+        },
+
+        isSynced: async function () {
+            try {
+                await PON.app.db.get('settings');
+                return true;
+            } catch (e) {
+                return false;
+            }
+
         },
 
         syncOn: function () {
-            PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
+            PouchDB.sync('network', `http://${PON.app.settings.url}/network`, {
                 live: true,
                 retry: true
             }).on('change', function (info) {
@@ -43,39 +59,52 @@ Ext.define('PON.utils.DB', {
         },
 
         syncOnce: function () {
-            return PouchDB.sync(PON.utils.DB.local, PON.utils.DB.remote, {
+            return PouchDB.sync('network', `http://${PON.app.settings.url}/network`, {
                 live: false,
                 retry: true
-            })
+            }).then(
+                _ => PON.app.db.get('settings')
+            ).then( settings => Object.assign(PON.app.settings, settings))
         },
 
-        syncAll: function () {
-            return Promise.all([
-                PON.app.db.syncOnce(),
-                PON.utils.DB.syncSignals()
-            ]).then(
-                _ => PON.app.__signals.get('signals')
-            ).then( signals => {
-                PON.app.signals = signals
+        syncAll: async function () {
+            Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка: Клиентов' });
+            await PON.app.db.syncOnce();
+            Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка: Сигналов' });
+            await PON.utils.DB.syncSignals();
+            Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: Сигналов' });
+        },
+
+        updateSignals: function () {
+            return new Promise( (resolve, reject) => {
+                $.ajax({
+                    url: PON.app.settings.signals,
+                    dataType: "jsonp",
+                    jsonpCallback: "ff",
+                    success: signals =>  {
+                        PON.app.__signals.destroy().then( _ => {
+                            PON.app.__signals = new PouchDB('signals');
+                            PON.app.signals = signals;
+
+                            return PON.app.__signals.put(Object.assign({
+                                _id : 'signals'
+                            }, signals));
+                        }).then( _ => resolve (signals))
+                    }
+                });
             })
         },
 
         syncSignals: function () {
-            return PON.app.__signals.destroy().finally( _ => {
-                PON.app.__signals = new PouchDB('signals', {auto_compaction: true});
-                return PouchDB.replicate('http://iport:iport@91.226.253.11:5984/signals', 'signals')
-            })
+            return PouchDB.replicate(
+                `http://${PON.app.settings.url}/signals`, 'signals'
+            ).then(
+                _ => PON.app.__signals.get('signals')
+            ).then(
+                record => PON.app.signals = record
+            );
+
         },
-
-        replicateFrom: function () {
-            let db = this;
-
-            return new Promise( (resolve, reject) => {
-                db.replicate.from(PON.utils.DB.remote)
-                    .on('complete', info => resolve (info))
-                    .on('error', error => reject(error));
-            } )
-         },
 
         deleteOnus: function () {
             PON.app.db.query((doc, emit) => {
@@ -84,18 +113,6 @@ Ext.define('PON.utils.DB', {
                     PON.app.db.remove(doc)
                 }
             });
-        },
-
-        refreshSignals: function () {
-            return new Promise( (resolve, reject) => {
-                $.get('http://stat.fun.co.ua/geocode.php', {
-                    action: 'getPonSignals'
-                }).done( data => {
-                    PON.app.db.putOnus(data, {resolve: resolve, reject: reject});
-
-                });
-            })
-
         },
 
         // Клиенты индексируются по mac onu
@@ -139,7 +156,7 @@ Ext.define('PON.utils.DB', {
 
             });
 
-            db.replicate.to(PON.utils.DB.remote).on('complete', info => deferred.resolve(info))
+            db.replicate.to(`http://${PON.app.settings.url}/network`).on('complete', info => deferred.resolve(info))
 
         },
     }
