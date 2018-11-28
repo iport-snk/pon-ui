@@ -52,7 +52,6 @@ Ext.define('PON.utils.DB', {
             ).then(
                 settings => Object.assign(PON.app.settings, settings)
             ).catch( e => {
-                debugger;
                 console.log(e)
             })
         },
