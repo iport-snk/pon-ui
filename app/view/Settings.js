@@ -14,6 +14,11 @@ Ext.define('PON.view.Settings', {
             handler: () => Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN),
             align: 'left'
         }, {
+            reference: 'deleteDbBtn',
+            iconCls: 'x-fa fa-trash',
+            handler: 'deleteDb',
+            align: 'right'
+        }, {
             reference: 'reloadBtn',
             iconCls: 'x-fa fa-refresh',
             handler: 'sync',

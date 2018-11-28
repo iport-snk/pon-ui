@@ -2,26 +2,34 @@ Ext.define('PON.utils.DB', {
     alias: 'utils.db',
 
     statics: {
+        DB: {
+            NET: 'ponctrl',
+            SIG: 'signals'
+        },
         init: async function () {
             let settings = localStorage.getItem('PON.app.settings');
             if (settings) PON.app.settings = JSON.parse(settings);
-            //if (!settings) throw 'need to set the DB url';
-            //PON.app.settings = JSON.parse(settings);
 
-            let db = PON.app.db = new PouchDB('network', {auto_compaction: true});
-
-            db.putOnus = this.putOnus.bind(db);
-            db.syncOn = this.syncOn.bind(db);
-            db.syncOnce = this.syncOnce.bind(db);
-            db.syncAll = this.syncAll.bind(db);
-
-            PON.app.__signals = new PouchDB('signals', {auto_compaction: true});
+            PON.app.db = new PouchDB(this.DB.NET, {auto_compaction: true});
+            PON.app.__signals = new PouchDB(this.DB.SIG, {auto_compaction: true});
 
             return PON.app.db.get('settings').then( settings => {
                 Object.assign(PON.app.settings, settings);
                 return PON.app.__signals.get('signals');
             }).then( signals => {
                 PON.app.signals = signals
+            });
+        },
+
+
+        recreate: async function () {
+            return Promise.all([
+                PON.app.__signals.destroy(),
+                PON.app.db.destroy()
+            ]).then( _ => {
+                delete PON.app.signals;
+                PON.app.db = new PouchDB(this.DB.NET, {auto_compaction: true});
+                PON.app.__signals = new PouchDB(this.DB.SIG, {auto_compaction: true});
             });
         },
 
@@ -35,43 +43,25 @@ Ext.define('PON.utils.DB', {
 
         },
 
-        syncOn: function () {
-            PouchDB.sync('network', `http://${PON.app.settings.url}/network`, {
-                live: true,
-                retry: true
-            }).on('change', function (info) {
-                console.log('DB change');
-                console.log(info);
-            }).on('paused', function (err) {
-                console.log('DB paused');
-            }).on('active', function () {
-                console.log('DB active');
-            }).on('denied', function (err) {
-                console.log('DB denied');
-                console.log(err);
-            }).on('complete', function (info) {
-                console.log('DB complete');
-                console.log(info);
-            }).on('error', function (err) {
-                console.log('DB error');
-                console.log(err);
-            });
-        },
+        replicatePon: function () {
 
-        syncOnce: function () {
-            return PouchDB.sync('network', `http://${PON.app.settings.url}/network`, {
-                live: false,
-                retry: true
-            }).then(
+            return PouchDB.replicate(
+                `http://${PON.app.settings.url}/${this.DB.NET}`, this.DB.NET
+            ).then(
                 _ => PON.app.db.get('settings')
-            ).then( settings => Object.assign(PON.app.settings, settings))
+            ).then(
+                settings => Object.assign(PON.app.settings, settings)
+            ).catch( e => {
+                debugger;
+                console.log(e)
+            })
         },
 
         syncAll: async function () {
             Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка: Клиентов' });
-            await PON.app.db.syncOnce();
+            await PON.utils.DB.replicatePon();
             Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка: Сигналов' });
-            await PON.utils.DB.syncSignals();
+            await PON.utils.DB.replicateSignals();
             Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: Сигналов' });
         },
 
@@ -83,7 +73,7 @@ Ext.define('PON.utils.DB', {
                     jsonpCallback: "ff",
                     success: signals =>  {
                         PON.app.__signals.destroy().then( _ => {
-                            PON.app.__signals = new PouchDB('signals');
+                            PON.app.__signals = new PouchDB(this.DB.SIG);
                             PON.app.signals = signals;
 
                             return PON.app.__signals.put(Object.assign({
@@ -95,9 +85,9 @@ Ext.define('PON.utils.DB', {
             })
         },
 
-        syncSignals: function () {
+        replicateSignals: function () {
             return PouchDB.replicate(
-                `http://${PON.app.settings.url}/signals`, 'signals'
+                `http://${PON.app.settings.url}/${this.DB.SIG}`, this.DB.SIG
             ).then(
                 _ => PON.app.__signals.get('signals')
             ).then(
@@ -156,7 +146,7 @@ Ext.define('PON.utils.DB', {
 
             });
 
-            db.replicate.to(`http://${PON.app.settings.url}/network`).on('complete', info => deferred.resolve(info))
+            db.replicate.to(`http://${PON.app.settings.url}/${this.DB.SIG}`).on('complete', info => deferred.resolve(info))
 
         },
     }

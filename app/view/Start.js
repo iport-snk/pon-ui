@@ -23,13 +23,16 @@ Ext.define('PON.view.Start', {
     items: [{
         text: 'ЗАДАЧИ',
         handler: 'toggleTasks',
-        reference: 'goTasks'
+        reference: 'goTasks',
+        disabled: true
     }, {
         text: 'PON CONTROL',
         handler: 'togglePonControl',
-        reference: 'goPon'
+        reference: 'goPon',
+        disabled: true
     }],
     listeners: {
-        show: 'checkSettings'
+        show: 'checkSettings',
+        dbInit: 'checkSettings'
     }
 });

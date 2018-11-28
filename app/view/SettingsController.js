@@ -5,7 +5,7 @@ Ext.define('PON.view.SettingsController', {
     sync: function() {
         Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
 
-        PON.app.db.syncAll().then( info => {
+        PON.utils.DB.syncAll().then( info => {
             Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Индексирование: Договоров' });
             return PON.app.db.query('contracts', { startkey: '111.111' , endkey: '111.111' });
         }).then( _ => {
@@ -52,8 +52,27 @@ Ext.define('PON.view.SettingsController', {
             jiraLogin: this.lookup('jiraLogin').getValue(),
             jiraPassword: this.lookup('jiraPassword').getValue()
         };
+        Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Сохранение' });
+        fetch("http://" + PON.app.settings.url).then( _ => _.json()).then( r => {
+
+        }).catch(
+            e => Ext.Msg.alert('Не верный адрес', "http://" + PON.app.settings.url, Ext.emptyFn)
+        ).finally( _ => Ext.Viewport.setMasked(false));
 
         localStorage.setItem('PON.app.settings', JSON.stringify(PON.app.settings));
 
+    },
+
+    deleteDb: function () {
+        Ext.Msg.confirm(
+            'Подтвердите удаление данных из телефона', '<b>Продолжить</b>?',
+            answer => {
+                Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Удаление' });
+                PON.utils.DB.recreate().then( _ => {
+                    this.setTitle();
+                    Ext.Viewport.setMasked(false);
+                });
+            }
+        );
     }
 });

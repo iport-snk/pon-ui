@@ -194,7 +194,7 @@ Ext.define('PON.view.SfpSettingsController', {
     refresh: function () {
         Ext.Viewport.setMasked({ xtype: 'loadmask', message: 'Загрузка' });
 
-        PON.app.db.syncAll().then(
+        PON.utils.DB.syncAll().then(
             info => this.updateDateOnRefreshed()
         ).catch( error => {
             console.warn(error);

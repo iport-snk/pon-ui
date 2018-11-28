@@ -113,20 +113,22 @@ Ext.application({
             xtype: 'pon-map',
             autoDestroy: false
         },{
-            xtype: 'start'
+            xtype: 'start',
+            id: 'start'
         },{
             xtype: 'tasks'
         },{
             xtype: 'settings'
         }]);
+        Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN);
         try {
             await PON.utils.DB.init();
-
+            Ext.getCmp('start').fireEvent('dbInit');
         } catch (e) {
             console.log(e)
         }
 
-        Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN);
+
 
     }
 });
