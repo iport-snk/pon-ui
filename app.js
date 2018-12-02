@@ -19,7 +19,8 @@ Ext.application({
         'PON.view.PonMap',
         'PON.view.Start',
         'PON.view.Tasks',
-        'PON.view.Settings'
+        'PON.view.Settings',
+        'PON.view.Promo'
     ],
 
     viewport: {
@@ -60,7 +61,8 @@ Ext.application({
         MAP: 6,
         MAIN: 7,
         TASKS: 8,
-        SETTINGS: 9
+        SETTINGS: 9,
+        PROMO: 10
     },
 
     MATCHER: '\ufff0',
@@ -119,6 +121,8 @@ Ext.application({
             xtype: 'tasks'
         },{
             xtype: 'settings'
+        },{
+            xtype: 'promo'
         }]);
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN);
         try {
@@ -127,8 +131,5 @@ Ext.application({
         } catch (e) {
             console.log(e)
         }
-
-
-
     }
 });

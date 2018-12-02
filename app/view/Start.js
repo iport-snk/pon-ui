@@ -30,6 +30,10 @@ Ext.define('PON.view.Start', {
         handler: 'togglePonControl',
         reference: 'goPon',
         disabled: true
+    }, {
+        text: 'PROMO',
+        handler: 'togglePromo',
+        reference: 'goPromo'
     }],
     listeners: {
         show: 'checkSettings',

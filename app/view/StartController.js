@@ -10,6 +10,10 @@ Ext.define('PON.view.StartController', {
         Ext.Viewport.down('sfp-settings').fireEvent('setAction');
     },
 
+    togglePromo: function () {
+        Ext.Viewport.down('promo').fireEvent('setAction');
+    },
+
     checkSettings: async function () {
         let goTasks = this.lookup('goTasks'),
             goPon = this.lookup('goPon');
