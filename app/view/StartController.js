@@ -14,6 +14,11 @@ Ext.define('PON.view.StartController', {
         Ext.Viewport.down('promo').fireEvent('setAction');
     },
 
+    toggleTracks: function () {
+        Ext.Viewport.down('tracks').fireEvent('setAction');
+    },
+
+
     checkSettings: async function () {
         let goTasks = this.lookup('goTasks'),
             goPon = this.lookup('goPon');

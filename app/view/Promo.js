@@ -35,11 +35,16 @@ Ext.define('PON.view.Promo', {
             flex: 1
         },{
             xtype: 'button',
-            text: 'Badge',
+            iconCls: 'x-fa fa-plus-square',
             //ui: 'raised',
             menu: [{
-                text: 'Menu Item'
-            }]
+                text: 'Реклама',
+                handler: 'goNewAd'
+            },{
+                text: 'Абонент конкурентов',
+                handler: 'goNewComp'
+            }],
+
         }]
     },{
         xtype: 'textfield',

@@ -20,7 +20,9 @@ Ext.application({
         'PON.view.Start',
         'PON.view.Tasks',
         'PON.view.Settings',
-        'PON.view.Promo'
+        'PON.view.Promo',
+        'PON.view.PromoInfo',
+        'PON.view.tracks.Tracks'
     ],
 
     viewport: {
@@ -62,7 +64,9 @@ Ext.application({
         MAIN: 7,
         TASKS: 8,
         SETTINGS: 9,
-        PROMO: 10
+        PROMO: 10,
+        PROMO_INFO: 11,
+        TRACKS: 12,
     },
 
     MATCHER: '\ufff0',
@@ -96,8 +100,10 @@ Ext.application({
         })
     },
 
+
+
     launch: async function () {
-        PON.app.keepAwake();
+        this.keepAwake();
 
         Ext.Viewport.add([{
             xtype: 'pon-tree'
@@ -123,6 +129,10 @@ Ext.application({
             xtype: 'settings'
         },{
             xtype: 'promo'
+        },{
+            xtype: 'promo-info'
+        },{
+            xtype: 'tracks'
         }]);
         Ext.Viewport.setActiveItem(PON.app.CARD_INDEXES.MAIN);
         try {

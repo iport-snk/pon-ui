@@ -24,7 +24,7 @@ Ext.define('PON.view.Start', {
         text: 'ЗАДАЧИ',
         handler: 'toggleTasks',
         reference: 'goTasks',
-        disabled: true
+        //disabled: true
     }, {
         text: 'PON CONTROL',
         handler: 'togglePonControl',
@@ -34,6 +34,24 @@ Ext.define('PON.view.Start', {
         text: 'PROMO',
         handler: 'togglePromo',
         reference: 'goPromo'
+    }, {
+        text: 'TRACK',
+        handler: 'toggleTracks',
+        reference: 'goTracks'
+    }, {
+        text: '-> MOVING',
+        handler: function () {
+            PON.app.geo.changePace(true, function() {
+                console.log('- plugin is now tracking');
+            });
+        },
+    }, {
+        text: '-> STATIONARY',
+        handler: function () {
+            PON.app.geo.changePace(false, function() {
+                console.log('- plugin is in stationary state');
+            });
+        },
     }],
     listeners: {
         show: 'checkSettings',
